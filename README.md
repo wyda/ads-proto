@@ -6,7 +6,7 @@ Implementation of the [Beckhoff ADS protocol](https://download.beckhoff.com/down
 Originally forked from [mattsse/rust-ads](https://github.com/mattsse/rust-ads) 
 and now moved from [wyda/rust-ads](https://github.com/wyda/rust-ads) to this separate repository.
 
-This library implements the basic ADS types and you could use as example to implement your own Ads client or server.
+This library implements the basic ADS types and you could use it as example to implement your own Ads client or server.
 
 The following commands are implemented:
 - Read device info
