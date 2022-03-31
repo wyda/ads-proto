@@ -22,3 +22,5 @@ The following commands are implemented:
 Additional implementations for commands:
 - sum up request -> bundles multiple requests together
 - sum up response -> bundles multiple responses together
+
+...
