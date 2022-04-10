@@ -6,6 +6,21 @@ use std::convert::TryInto;
 use std::io::{self, Read, Write};
 use std::string::FromUtf8Error;
 
+/// Each Response enum variant holds the struct with the data needed for a certain command.
+/// The created Response can then be supplied to an [AMS header](super::ams_header).
+/// ```
+/// use crate::ads_proto::proto::response::*;
+/// use crate::ads_proto::proto::proto_traits::{ReadFrom, WriteTo};
+/// use crate::ads_proto::error::AdsError;
+///
+/// let response = Response::ReadDeviceInfo(ReadDeviceInfoResponse::new(
+///     AdsError::ErrNoError,
+///     1,
+///     2,
+///     33,
+///     [1; 16],
+/// ));
+/// ```
 #[derive(Debug, PartialEq)]
 pub enum Response {
     ReadDeviceInfo(ReadDeviceInfoResponse),

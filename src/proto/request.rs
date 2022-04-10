@@ -8,6 +8,14 @@ use crate::proto::command_id::CommandID;
 use crate::proto::proto_traits::{ReadFrom, WriteTo};
 use std::convert::TryInto;
 
+/// Each Request enum variant holds the struct with the data needed for a certain command.
+/// The created Request can then be supplied to an [AMS header](super::ams_header).
+/// ```
+/// use crate::ads_proto::proto::request::*;
+/// use crate::ads_proto::proto::proto_traits::{ReadFrom, WriteTo};
+///
+/// let request = Request::ReadDeviceInfo(ReadDeviceInfoRequest::new());
+/// ```
 #[derive(Debug, PartialEq)]
 pub enum Request {
     Invalid(InvalidRequest),
