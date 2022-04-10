@@ -38,53 +38,6 @@ impl ReadFrom for AmsTcpHeader {
     }
 }
 
-impl AmsTcpHeader {
-    ///Returns the command id from the ams header
-    pub fn command_id(&self) -> CommandID {
-        self.ams_header.command_id
-    }
-
-    ///Returns the Response data as a Response enum
-    pub fn response(&mut self) -> io::Result<Response> {
-        self.ams_header.response()
-    }
-
-    ///Returns the response data length in bytes
-    pub fn response_data_len(&self) -> u32 {
-        self.ams_header.length
-    }
-
-    ///Updates the ams_header data
-    pub fn update_response_data(&mut self, buf: Vec<u8>) {
-        self.ams_header.update_data(buf);
-    }
-
-    ///Returns the invoke id from the ams header. This is the invoke id set when requested the data
-    pub fn invoke_id(&self) -> u32 {
-        self.ams_header.invoke_id
-    }
-
-    ///Returns the ads error code from the ams header. There is another ads error in the response data!
-    pub fn ads_error(&self) -> &AdsError {
-        &self.ams_header.ams_ads_error
-    }
-
-    ///Return the raw data from the ams header data section. This data can be used to create the specific response object.
-    pub fn raw_response_data(&self) -> &[u8] {
-        &self.ams_header.data[..]
-    }
-
-    ///Get the ads error code from the response data (ams header data section)
-    pub fn response_result(&self) -> Option<AdsError> {
-        if self.ams_header.data.len() >= 4 {
-            if let Ok(result) = self.ams_header.data.as_slice().read_u32::<LittleEndian>() {
-                return Some(AdsError::from(result));
-            }
-        }
-        None
-    }
-}
-
 impl From<AmsHeader> for AmsTcpHeader {
     fn from(ams_header: AmsHeader) -> Self {
         AmsTcpHeader {
@@ -131,7 +84,7 @@ impl ReadFrom for AmsHeader {
         let ams_ads_error = AdsError::from(read.read_u32::<LittleEndian>()?);
         let invoke_id = read.read_u32::<LittleEndian>()?;
         let mut data: Vec<u8> = vec![0; length as usize];
-        read.read_exact(&mut data).unwrap(); //Todo fails silently at the moment if not the complete AmsHeader was read from the stream (read to check data length)
+        read.read_exact(&mut data)?;
 
         Ok(AmsHeader {
             ams_address_targed,
@@ -155,7 +108,9 @@ impl AmsHeader {
         request: Request,
     ) -> Self {
         let mut data: Vec<u8> = Vec::new();
-        request.write_to(&mut data).unwrap();
+        request
+            .write_to(&mut data)
+            .expect("failed to write request to buffer!");
 
         AmsHeader {
             ams_address_targed,
@@ -169,7 +124,7 @@ impl AmsHeader {
         }
     }
 
-    fn response(&mut self) -> io::Result<Response> {
+    pub fn response(&mut self) -> io::Result<Response> {
         match self.command_id {
             CommandID::Invalid => Err(io::Error::new(
                 io::ErrorKind::Other,
@@ -203,6 +158,46 @@ impl AmsHeader {
                 &mut self.data.as_slice(),
             )?)),
         }
+    }
+
+    ///Returns the command id from the ams header
+    pub fn command_id(&self) -> CommandID {
+        self.command_id
+    }
+
+    ///Returns the response data length in bytes
+    pub fn response_data_len(&self) -> u32 {
+        self.length
+    }
+
+    ///Updates the ams_header data
+    pub fn update_response_data(&mut self, buf: Vec<u8>) {
+        self.update_data(buf);
+    }
+
+    ///Returns the invoke id from the ams header. This is the invoke id set when requested the data
+    pub fn invoke_id(&self) -> u32 {
+        self.invoke_id
+    }
+
+    ///Returns the ads error code from the ams header. There is another ads error in the response data!
+    pub fn ads_error(&self) -> &AdsError {
+        &self.ams_ads_error
+    }
+
+    ///Return the raw data from the ams header data section. This data can be used to create the specific response object.
+    pub fn raw_response_data(&self) -> &[u8] {
+        &self.data[..]
+    }
+
+    ///Get the ads error code from the response data (ams header data section)
+    pub fn response_result(&self) -> Option<AdsError> {
+        if self.data.len() >= 4 {
+            if let Ok(result) = self.data.as_slice().read_u32::<LittleEndian>() {
+                return Some(AdsError::from(result));
+            }
+        }
+        None
     }
 
     ///get the length in bytes of the whole ams_header.
@@ -441,7 +436,7 @@ mod tests {
         ];
 
         let ams_tcp_header = AmsTcpHeader::read_from(&mut data.as_slice()).unwrap();
-        assert_eq!(CommandID::Read, ams_tcp_header.command_id());
+        assert_eq!(CommandID::Read, ams_tcp_header.ams_header.command_id());
     }
 
     #[test]
@@ -462,7 +457,7 @@ mod tests {
         ];
 
         let ams_tcp_header = AmsTcpHeader::read_from(&mut data.as_slice()).unwrap();
-        let len = ams_tcp_header.response_data_len();
+        let len = ams_tcp_header.ams_header.response_data_len();
         assert_eq!(12, len);
     }
 
@@ -485,8 +480,10 @@ mod tests {
 
         let mut ams_tcp_header = AmsTcpHeader::read_from(&mut data.as_slice()).unwrap();
         let new_data: Vec<u8> = vec![3, 1, 0, 0, 3, 1, 0, 0, 16, 0, 0, 0];
-        ams_tcp_header.update_response_data(new_data.clone());
-        assert_eq!(new_data, ams_tcp_header.raw_response_data());
+        ams_tcp_header
+            .ams_header
+            .update_response_data(new_data.clone());
+        assert_eq!(new_data, ams_tcp_header.ams_header.raw_response_data());
     }
 
     #[test]
@@ -507,7 +504,7 @@ mod tests {
         ];
 
         let ams_tcp_header = AmsTcpHeader::read_from(&mut data.as_slice()).unwrap();
-        assert_eq!(111, ams_tcp_header.invoke_id());
+        assert_eq!(111, ams_tcp_header.ams_header.invoke_id());
     }
 
     #[test]
@@ -528,7 +525,7 @@ mod tests {
         ];
 
         let ams_tcp_header = AmsTcpHeader::read_from(&mut data.as_slice()).unwrap();
-        assert_eq!(&AdsError::ErrNoError, ams_tcp_header.ads_error());
+        assert_eq!(&AdsError::ErrNoError, ams_tcp_header.ams_header.ads_error());
     }
 
     #[test]
@@ -551,7 +548,7 @@ mod tests {
         let ams_tcp_header = AmsTcpHeader::read_from(&mut data.as_slice()).unwrap();
         assert_eq!(
             &[3, 1, 0, 0, 3, 1, 0, 0, 4, 0, 0, 0],
-            ams_tcp_header.raw_response_data()
+            ams_tcp_header.ams_header.raw_response_data()
         );
     }
 
@@ -575,7 +572,7 @@ mod tests {
         let ams_tcp_header = AmsTcpHeader::read_from(&mut data.as_slice()).unwrap();
         assert_eq!(
             Some(AdsError::ErrUnknowAdsError { error_code: 259 }),
-            ams_tcp_header.response_result()
+            ams_tcp_header.ams_header.response_result()
         );
     }
 }
