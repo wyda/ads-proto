@@ -51,12 +51,11 @@ impl FromStr for AmsAddress {
         }
 
         let ams_net_id = AmsNetId::from_str(split_socket[0])?;
-        let port;
 
-        match split_socket[1].parse::<u16>() {
-            Ok(p) => port = p,
+        let port = match split_socket[1].parse::<u16>() {
+            Ok(p) => p,
             Err(e) => return Err(AmsAddressError::ParseError { source: e }),
-        }
+        };
         Ok(AmsAddress::new(ams_net_id, port))
     }
 }

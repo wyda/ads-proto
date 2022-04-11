@@ -122,41 +122,87 @@ impl AmsHeader {
             invoke_id,
             data,
         }
+    }    
+
+    ///Returns the response from AMS header data
+    pub fn response(&mut self) -> io::Result<Response> {
+        if self.state_flags.is_response() {
+            match self.command_id {
+                CommandID::Invalid => Err(io::Error::new(
+                    io::ErrorKind::Other,
+                    AdsError::AdsErrDeviceInvalidData,
+                )),
+                CommandID::ReadDeviceInfo => Ok(Response::ReadDeviceInfo(
+                    ReadDeviceInfoResponse::read_from(&mut self.data.as_slice())?,
+                )),
+                CommandID::Read => Ok(Response::Read(ReadResponse::read_from(
+                    &mut self.data.as_slice(),
+                )?)),
+                CommandID::Write => Ok(Response::Write(WriteResponse::read_from(
+                    &mut self.data.as_slice(),
+                )?)),
+                CommandID::ReadState => Ok(Response::ReadState(ReadStateResponse::read_from(
+                    &mut self.data.as_slice(),
+                )?)),
+                CommandID::WriteControl => Ok(Response::WriteControl(WriteControlResponse::read_from(
+                    &mut self.data.as_slice(),
+                )?)),
+                CommandID::AddDeviceNotification => Ok(Response::AddDeviceNotification(
+                    AddDeviceNotificationResponse::read_from(&mut self.data.as_slice())?,
+                )),
+                CommandID::DeleteDeviceNotification => Ok(Response::DeleteDeviceNotification(
+                    DeleteDeviceNotificationResponse::read_from(&mut self.data.as_slice())?,
+                )),
+                CommandID::DeviceNotification => Ok(Response::DeviceNotification(
+                    AdsNotificationStream::read_from(&mut self.data.as_slice())?,
+                )),
+                CommandID::ReadWrite => Ok(Response::ReadWrite(ReadWriteResponse::read_from(
+                    &mut self.data.as_slice(),
+                )?)),
+            }
+        }
+        else{
+            Err(io::Error::new(io::ErrorKind::Other, "Is not a response but a request!"))
+        }
     }
 
-    pub fn response(&mut self) -> io::Result<Response> {
-        match self.command_id {
-            CommandID::Invalid => Err(io::Error::new(
-                io::ErrorKind::Other,
-                AdsError::AdsErrDeviceInvalidData,
-            )),
-            CommandID::ReadDeviceInfo => Ok(Response::ReadDeviceInfo(
-                ReadDeviceInfoResponse::read_from(&mut self.data.as_slice())?,
-            )),
-            CommandID::Read => Ok(Response::Read(ReadResponse::read_from(
-                &mut self.data.as_slice(),
-            )?)),
-            CommandID::Write => Ok(Response::Write(WriteResponse::read_from(
-                &mut self.data.as_slice(),
-            )?)),
-            CommandID::ReadState => Ok(Response::ReadState(ReadStateResponse::read_from(
-                &mut self.data.as_slice(),
-            )?)),
-            CommandID::WriteControl => Ok(Response::WriteControl(WriteControlResponse::read_from(
-                &mut self.data.as_slice(),
-            )?)),
-            CommandID::AddDeviceNotification => Ok(Response::AddDeviceNotification(
-                AddDeviceNotificationResponse::read_from(&mut self.data.as_slice())?,
-            )),
-            CommandID::DeleteDeviceNotification => Ok(Response::DeleteDeviceNotification(
-                DeleteDeviceNotificationResponse::read_from(&mut self.data.as_slice())?,
-            )),
-            CommandID::DeviceNotification => Ok(Response::DeviceNotification(
-                AdsNotificationStream::read_from(&mut self.data.as_slice())?,
-            )),
-            CommandID::ReadWrite => Ok(Response::ReadWrite(ReadWriteResponse::read_from(
-                &mut self.data.as_slice(),
-            )?)),
+    ///Returns the request from AMS header data
+    pub fn request(&mut self) -> io::Result<Request> {
+        if !self.state_flags.is_response(){
+            match self.command_id {
+                CommandID::Invalid => Err(io::Error::new(
+                    io::ErrorKind::Other,
+                    AdsError::AdsErrDeviceInvalidData,
+                )),
+                CommandID::ReadDeviceInfo => Ok(Request::ReadDeviceInfo(ReadDeviceInfoRequest::new())
+                ),
+                CommandID::Read => Ok(Request::Read(ReadRequest::read_from(
+                    &mut self.data.as_slice(),
+                )?)),
+                CommandID::Write => Ok(Request::Write(WriteRequest::read_from(
+                    &mut self.data.as_slice(),
+                )?)),
+                CommandID::ReadState => Ok(Request::ReadState(ReadStateRequest::new())             
+                ),
+                CommandID::WriteControl => Ok(Request::WriteControl(WriteControlRequest::read_from(
+                    &mut self.data.as_slice(),
+                )?)),
+                CommandID::AddDeviceNotification => Ok(Request::AddDeviceNotification(
+                    AddDeviceNotificationRequest::read_from(&mut self.data.as_slice())?,
+                )),
+                CommandID::DeleteDeviceNotification => Ok(Request::DeleteDeviceNotification(
+                    DeleteDeviceNotificationRequest::read_from(&mut self.data.as_slice())?,
+                )),
+                CommandID::DeviceNotification => Ok(Request::DeviceNotification(
+                    DeviceNotificationRequest::new())
+                ),
+                CommandID::ReadWrite => Ok(Request::ReadWrite(ReadWriteRequest::read_from(
+                    &mut self.data.as_slice(),
+                )?)),
+            }
+        }
+        else{
+            Err(io::Error::new(io::ErrorKind::Other, "Is not a request but a response!"))
         }
     }
 
