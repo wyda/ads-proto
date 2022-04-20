@@ -15,7 +15,7 @@ const FIX_AMS_HEADER_LEN: u32 = 32;
 pub struct AmsTcpHeader {
     reserved: [u8; 2],
     length: u32,
-    ams_header: AmsHeader,
+    pub ams_header: AmsHeader,
 }
 
 impl WriteTo for AmsTcpHeader {
