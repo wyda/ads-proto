@@ -270,6 +270,14 @@ impl ReadDeviceInfoResponse {
 
         String::from_utf8(name_bytes)
     }
+
+    pub fn create_device_name_buf(device_name: &str) -> [u8; 16] {
+        let mut device_name_buffer: [u8; 16] = [0; 16];
+        for (n, b) in device_name.as_bytes().iter().enumerate() {
+            device_name_buffer[n] = *b;
+        }
+        device_name_buffer
+    }
 }
 
 ///Ads Write
@@ -919,6 +927,16 @@ mod tests {
             expected_device_name,
             "Parsing device name failed"
         );
+    }
+
+    #[test]
+    fn read_device_info_device_name_buf_test() {
+        let device_name: [u8; 16] = ReadDeviceInfoResponse::create_device_name_buf("Device");
+
+        let device_info_response =
+            ReadDeviceInfoResponse::new(AdsError::ErrAccessDenied, 1, 2, 10, device_name);
+
+        assert_eq!(device_info_response.get_device_name().unwrap(), "Device");
     }
 
     #[test]
