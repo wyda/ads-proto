@@ -25,4 +25,5 @@ Additional implementations for commands:
 ## Docu
 Build docu with cargo doc --open
 ## Examples
+Creating and reading a requests -> examples/request_example.rs 
 ...
