@@ -274,6 +274,9 @@ impl ReadDeviceInfoResponse {
     pub fn create_device_name_buf(device_name: &str) -> [u8; 16] {
         let mut device_name_buffer: [u8; 16] = [0; 16];
         for (n, b) in device_name.as_bytes().iter().enumerate() {
+            if n == device_name_buffer.len() {
+                break;
+            }
             device_name_buffer[n] = *b;
         }
         device_name_buffer
@@ -937,6 +940,20 @@ mod tests {
             ReadDeviceInfoResponse::new(AdsError::ErrAccessDenied, 1, 2, 10, device_name);
 
         assert_eq!(device_info_response.get_device_name().unwrap(), "Device");
+    }
+
+    #[test]
+    fn read_device_info_device_name_buf_test2() {
+        let device_name: [u8; 16] =
+            ReadDeviceInfoResponse::create_device_name_buf("OverflowtestOverflowtest");
+
+        let device_info_response =
+            ReadDeviceInfoResponse::new(AdsError::ErrAccessDenied, 1, 2, 10, device_name);
+
+        assert_eq!(
+            device_info_response.get_device_name().unwrap(),
+            "OverflowtestOver"
+        );
     }
 
     #[test]
