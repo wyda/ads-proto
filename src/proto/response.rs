@@ -1,6 +1,7 @@
 use crate::error::{AdsError, TryIntoError};
 use crate::proto::ads_state::AdsState;
-use crate::proto::proto_traits::{ReadFrom, WriteTo};
+use crate::proto::command_id::CommandID;
+use crate::proto::proto_traits::{Command, ReadFrom, WriteTo};
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use std::convert::TryInto;
 use std::io::{self, Read, Write};
@@ -23,6 +24,7 @@ use std::string::FromUtf8Error;
 /// ```
 #[derive(Debug, PartialEq)]
 pub enum Response {
+    Invalid(InvalidResponse),
     ReadDeviceInfo(ReadDeviceInfoResponse),
     Read(ReadResponse),
     Write(WriteResponse),
@@ -37,6 +39,7 @@ pub enum Response {
 impl WriteTo for Response {
     fn write_to<W: Write>(&self, mut wtr: W) -> io::Result<()> {
         match self {
+            Response::Invalid(_) => Ok(()),
             Response::ReadDeviceInfo(w) => w.write_to(&mut wtr),
             Response::Read(w) => w.write_to(&mut wtr),
             Response::Write(w) => w.write_to(&mut wtr),
@@ -46,6 +49,40 @@ impl WriteTo for Response {
             Response::DeleteDeviceNotification(w) => w.write_to(&mut wtr),
             Response::DeviceNotification(w) => w.write_to(&mut wtr),
             Response::ReadWrite(w) => w.write_to(&mut wtr),
+        }
+    }
+}
+
+impl Command for Response {
+    fn command_id(&self) -> CommandID {
+        match self {
+            Response::Invalid(r) => r.command_id,
+            Response::ReadDeviceInfo(r) => r.command_id,
+            Response::ReadState(r) => r.command_id,
+            Response::Read(r) => r.command_id,
+            Response::Write(r) => r.command_id,
+            Response::ReadWrite(r) => r.command_id,
+            Response::AddDeviceNotification(r) => r.command_id,
+            Response::WriteControl(r) => r.command_id,
+            Response::DeviceNotification(r) => r.command_id,
+            Response::DeleteDeviceNotification(r) => r.command_id,
+        }
+    }
+}
+
+impl From<InvalidResponse> for Response {
+    fn from(request: InvalidResponse) -> Self {
+        Response::Invalid(request)
+    }
+}
+
+impl TryInto<InvalidResponse> for Response {
+    type Error = TryIntoError;
+
+    fn try_into(self) -> Result<InvalidResponse, Self::Error> {
+        match self {
+            Response::Invalid(r) => Ok(r),
+            _ => Err(TryIntoError::TryIntoResponseFailed),
         }
     }
 }
@@ -203,6 +240,26 @@ impl TryInto<ReadWriteResponse> for Response {
     }
 }
 
+/// ADS Invalid response
+#[derive(Debug, Clone, PartialEq)]
+pub struct InvalidResponse {
+    command_id: CommandID,
+}
+
+impl InvalidResponse {
+    pub fn new() -> Self {
+        InvalidResponse {
+            command_id: CommandID::Invalid,
+        }
+    }
+}
+
+impl Default for InvalidResponse {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 /// ADS Read Device Info
 #[derive(Debug, PartialEq, Clone)]
 pub struct ReadDeviceInfoResponse {
@@ -211,6 +268,7 @@ pub struct ReadDeviceInfoResponse {
     pub minor_version: u8,
     pub version_build: u16,
     pub device_name: [u8; 16],
+    pub command_id: CommandID,
 }
 
 impl ReadFrom for ReadDeviceInfoResponse {
@@ -227,6 +285,7 @@ impl ReadFrom for ReadDeviceInfoResponse {
             minor_version,
             version_build,
             device_name,
+            command_id: CommandID::ReadDeviceInfo,
         })
     }
 }
@@ -256,6 +315,7 @@ impl ReadDeviceInfoResponse {
             minor_version,
             version_build,
             device_name,
+            command_id: CommandID::ReadDeviceInfo,
         }
     }
 
@@ -287,12 +347,16 @@ impl ReadDeviceInfoResponse {
 #[derive(Debug, PartialEq, Clone)]
 pub struct WriteResponse {
     pub result: AdsError,
+    pub command_id: CommandID,
 }
 
 impl ReadFrom for WriteResponse {
     fn read_from<R: Read>(read: &mut R) -> io::Result<Self> {
         let result = AdsError::from(read.read_u32::<LittleEndian>()?);
-        Ok(Self { result })
+        Ok(Self {
+            result,
+            command_id: CommandID::Write,
+        })
     }
 }
 
@@ -305,7 +369,10 @@ impl WriteTo for WriteResponse {
 
 impl WriteResponse {
     pub fn new(result: AdsError) -> Self {
-        WriteResponse { result }
+        WriteResponse {
+            result,
+            command_id: CommandID::Write,
+        }
     }
 }
 
@@ -315,6 +382,7 @@ pub struct ReadStateResponse {
     pub result: AdsError,
     pub ads_state: AdsState,
     pub device_state: u16,
+    pub command_id: CommandID,
 }
 
 impl ReadFrom for ReadStateResponse {
@@ -323,6 +391,7 @@ impl ReadFrom for ReadStateResponse {
             result: AdsError::from(read.read_u32::<LittleEndian>()?),
             ads_state: AdsState::read_from(read)?,
             device_state: read.read_u16::<LittleEndian>()?,
+            command_id: CommandID::ReadState,
         })
     }
 }
@@ -342,6 +411,7 @@ impl ReadStateResponse {
             result,
             ads_state,
             device_state,
+            command_id: CommandID::ReadState,
         }
     }
 }
@@ -350,12 +420,14 @@ impl ReadStateResponse {
 #[derive(Debug, PartialEq, Clone)]
 pub struct WriteControlResponse {
     pub result: AdsError,
+    pub command_id: CommandID,
 }
 
 impl ReadFrom for WriteControlResponse {
     fn read_from<R: Read>(read: &mut R) -> io::Result<Self> {
         Ok(Self {
             result: AdsError::from(read.read_u32::<LittleEndian>()?),
+            command_id: CommandID::WriteControl,
         })
     }
 }
@@ -369,7 +441,10 @@ impl WriteTo for WriteControlResponse {
 
 impl WriteControlResponse {
     pub fn new(result: AdsError) -> Self {
-        WriteControlResponse { result }
+        WriteControlResponse {
+            result,
+            command_id: CommandID::WriteControl,
+        }
     }
 }
 
@@ -378,6 +453,7 @@ impl WriteControlResponse {
 pub struct AddDeviceNotificationResponse {
     pub result: AdsError,
     pub notification_handle: u32,
+    pub command_id: CommandID,
 }
 
 impl ReadFrom for AddDeviceNotificationResponse {
@@ -385,6 +461,7 @@ impl ReadFrom for AddDeviceNotificationResponse {
         Ok(Self {
             result: AdsError::from(read.read_u32::<LittleEndian>()?),
             notification_handle: read.read_u32::<LittleEndian>()?,
+            command_id: CommandID::AddDeviceNotification,
         })
     }
 }
@@ -402,6 +479,7 @@ impl AddDeviceNotificationResponse {
         AddDeviceNotificationResponse {
             result,
             notification_handle,
+            command_id: CommandID::AddDeviceNotification,
         }
     }
 }
@@ -410,12 +488,14 @@ impl AddDeviceNotificationResponse {
 #[derive(Debug, PartialEq, Clone)]
 pub struct DeleteDeviceNotificationResponse {
     pub result: AdsError,
+    pub command_id: CommandID,
 }
 
 impl ReadFrom for DeleteDeviceNotificationResponse {
     fn read_from<R: Read>(read: &mut R) -> io::Result<Self> {
         Ok(Self {
             result: AdsError::from(read.read_u32::<LittleEndian>()?),
+            command_id: CommandID::DeleteDeviceNotification,
         })
     }
 }
@@ -429,7 +509,10 @@ impl WriteTo for DeleteDeviceNotificationResponse {
 
 impl DeleteDeviceNotificationResponse {
     pub fn new(result: AdsError) -> Self {
-        DeleteDeviceNotificationResponse { result }
+        DeleteDeviceNotificationResponse {
+            result,
+            command_id: CommandID::DeleteDeviceNotification,
+        }
     }
 }
 
@@ -531,6 +614,7 @@ pub struct AdsNotificationStream {
     pub length: u32,
     pub stamps: u32,
     pub ads_stamp_headers: Vec<AdsStampHeader>,
+    pub command_id: CommandID,
 }
 
 impl ReadFrom for AdsNotificationStream {
@@ -550,6 +634,7 @@ impl ReadFrom for AdsNotificationStream {
             length,
             stamps,
             ads_stamp_headers,
+            command_id: CommandID::DeviceNotification,
         })
     }
 }
@@ -572,6 +657,7 @@ impl AdsNotificationStream {
             length,
             stamps,
             ads_stamp_headers,
+            command_id: CommandID::DeviceNotification,
         }
     }
 
@@ -591,6 +677,7 @@ pub struct ReadResponse {
     pub result: AdsError,
     pub length: u32,
     pub data: Vec<u8>,
+    pub command_id: CommandID,
 }
 
 impl ReadFrom for ReadResponse {
@@ -603,6 +690,7 @@ impl ReadFrom for ReadResponse {
             result,
             length,
             data,
+            command_id: CommandID::Read,
         })
     }
 }
@@ -622,6 +710,7 @@ impl ReadResponse {
             result,
             length: data.len() as u32,
             data,
+            command_id: CommandID::Read,
         }
     }
 }
@@ -632,6 +721,7 @@ pub struct ReadWriteResponse {
     pub result: AdsError,
     pub length: u32,
     pub data: Vec<u8>,
+    pub command_id: CommandID,
 }
 
 impl ReadFrom for ReadWriteResponse {
@@ -644,6 +734,7 @@ impl ReadFrom for ReadWriteResponse {
             result,
             length,
             data,
+            command_id: CommandID::ReadWrite,
         })
     }
 }
@@ -663,6 +754,7 @@ impl ReadWriteResponse {
             result,
             length: data.len() as u32,
             data,
+            command_id: CommandID::ReadWrite,
         }
     }
 }
