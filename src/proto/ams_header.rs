@@ -1,7 +1,7 @@
 use crate::error::AdsError;
 use crate::proto::ams_address::AmsAddress;
 use crate::proto::command_id::CommandID;
-use crate::proto::proto_traits::{ReadFrom, WriteTo};
+use crate::proto::proto_traits::{Command, ReadFrom, WriteTo};
 use crate::proto::request::*;
 use crate::proto::response::*;
 use crate::proto::state_flags::StateFlags;
@@ -105,17 +105,17 @@ impl AmsHeader {
         ams_address_source: AmsAddress,
         state_flags: StateFlags,
         invoke_id: u32,
-        request: Request,
+        command: impl Command + WriteTo,
     ) -> Self {
         let mut data: Vec<u8> = Vec::new();
-        request
+        command
             .write_to(&mut data)
             .expect("failed to write request to buffer!");
 
         AmsHeader {
             ams_address_targed,
             ams_address_source,
-            command_id: request.command_id(),
+            command_id: command.command_id(),
             state_flags,
             length: data.len() as u32,
             ams_ads_error: AdsError::ErrNoError,

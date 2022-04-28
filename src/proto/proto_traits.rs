@@ -1,3 +1,4 @@
+use crate::proto::command_id::CommandID;
 use std::io::{self, Read, Write};
 
 pub trait ReadFrom: Sized {
@@ -6,6 +7,10 @@ pub trait ReadFrom: Sized {
 
 pub trait WriteTo {
     fn write_to<W: Write>(&self, wtr: W) -> io::Result<()>;
+}
+
+pub trait Command {
+    fn command_id(&self) -> CommandID;
 }
 
 pub trait SendRecieve {

@@ -5,7 +5,7 @@ use crate::error::TryIntoError;
 use crate::proto::ads_state::AdsState;
 use crate::proto::ads_transition_mode::AdsTransMode;
 use crate::proto::command_id::CommandID;
-use crate::proto::proto_traits::{ReadFrom, WriteTo};
+use crate::proto::proto_traits::{Command, ReadFrom, WriteTo};
 use std::convert::TryInto;
 
 /// Each Request enum variant holds the struct with the data needed for a certain command.
@@ -47,8 +47,8 @@ impl WriteTo for Request {
     }
 }
 
-impl Request {
-    pub fn command_id(&self) -> CommandID {
+impl Command for Request {
+    fn command_id(&self) -> CommandID {
         match self {
             Request::Invalid(r) => r.command_id,
             Request::ReadDeviceInfo(r) => r.command_id,
