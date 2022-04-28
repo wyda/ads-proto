@@ -35,4 +35,58 @@ fn main() {
         131,
         ReadDeviceInfoResponse::create_device_name_buf("MyDeviceName"),
     ));
+
+    //Now we need to create the ams header
+    let ams_header = AmsHeader::new(
+        targed_ams_address,
+        source_ams_address,
+        state_flags,
+        invoke_id,
+        response,
+    );
+
+    //Create AmsTcpHeader for sending
+    let ams_tcp_header = AmsTcpHeader::from(ams_header);
+
+    //Create byte buffer to send over TCP/IP
+    let mut buffer: Vec<u8> = Vec::new();
+    ams_tcp_header
+        .write_to(&mut buffer)
+        .expect("Failed to write byte buffer!");
+
+    //===========================================================================
+    //Read received response data (client)
+    let mut recv_ams_tcp_header = AmsTcpHeader::read_from(&mut buffer.as_slice())
+        .expect("Failed to create AmsTcpHeader from byte buffer!");
+
+    //get the response
+    let recv_response = recv_ams_tcp_header
+        .ams_header
+        .response()
+        .expect("failed to get response object");
+
+    //handle response
+
+    match recv_response {
+        Response::Invalid(r) => panic!("{:?}\n", r),
+        Response::Read(r) => println!("Got a read response {:?}\n", r),
+        Response::ReadDeviceInfo(r) => {
+            println!("Ads Error: {:?}", r.result);
+            println!("major_version: {:?}", r.major_version);
+            println!("minor_version: {:?}", r.minor_version);
+            println!("version_build: {:?}", r.version_build);
+            println!("device_name,: {:?}", r.get_device_name(),);
+        }
+        Response::ReadState(r) => println!("Got a read state response {:?}\n", r),
+        Response::ReadWrite(r) => println!("Got a read write response {:?}\n", r),
+        Response::Write(r) => println!("Got a write response {:?}\n", r),
+        Response::WriteControl(r) => println!("Got a write control response {:?}\n", r),
+        Response::AddDeviceNotification(r) => {
+            println!("Got a add device notification response {:?}\n", r)
+        }
+        Response::DeleteDeviceNotification(r) => {
+            println!("Got a delete device notification response {:?}\n", r)
+        }
+        Response::DeviceNotification(r) => println!("Got a device notification response {:?}\n", r),
+    }
 }
