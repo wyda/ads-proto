@@ -780,8 +780,9 @@ mod tests {
             ReadDeviceInfoResponse::new(AdsError::ErrNoError, 1, 2, 33, [1; 16]);
 
         let response = Response::ReadDeviceInfo(read_device_info_response.clone());
-        let test = response.try_into().unwrap();
+        assert_eq!(CommandID::ReadDeviceInfo, response.command_id());
 
+        let test = response.try_into().unwrap();
         assert_eq!(read_device_info_response, test);
     }
 
@@ -800,8 +801,9 @@ mod tests {
         let read_response = ReadResponse::new(AdsError::ErrNoError, vec![66]);
 
         let response = Response::Read(read_response.clone());
-        let test = response.try_into().unwrap();
+        assert_eq!(CommandID::Read, response.command_id());
 
+        let test = response.try_into().unwrap();
         assert_eq!(read_response, test);
     }
 
@@ -820,8 +822,9 @@ mod tests {
         let write_response = WriteResponse::new(AdsError::ErrNoError);
 
         let response = Response::Write(write_response.clone());
-        let test = response.try_into().unwrap();
+        assert_eq!(CommandID::Write, response.command_id());
 
+        let test = response.try_into().unwrap();
         assert_eq!(write_response, test);
     }
 
@@ -842,8 +845,9 @@ mod tests {
             ReadStateResponse::new(AdsError::ErrNoError, AdsState::AdsStateConfig, 123);
 
         let response = Response::ReadState(read_state_response.clone());
-        let test = response.try_into().unwrap();
+        assert_eq!(CommandID::ReadState, response.command_id());
 
+        let test = response.try_into().unwrap();
         assert_eq!(read_state_response, test);
     }
 
@@ -862,8 +866,9 @@ mod tests {
         let write_control_response = WriteControlResponse::new(AdsError::ErrNoError);
 
         let response = Response::WriteControl(write_control_response.clone());
-        let test = response.try_into().unwrap();
+        assert_eq!(CommandID::WriteControl, response.command_id());
 
+        let test = response.try_into().unwrap();
         assert_eq!(write_control_response, test);
     }
 
@@ -871,6 +876,11 @@ mod tests {
     fn response_from_add_device_notification() {
         let add_device_notification_response =
             AddDeviceNotificationResponse::new(AdsError::ErrNoError, 1);
+
+        assert_eq!(
+            CommandID::AddDeviceNotification,
+            Response::AddDeviceNotification(add_device_notification_response.clone()).command_id()
+        );
 
         assert_eq!(
             Response::AddDeviceNotification(add_device_notification_response.clone()),
@@ -884,8 +894,9 @@ mod tests {
             AddDeviceNotificationResponse::new(AdsError::ErrNoError, 1);
 
         let response = Response::AddDeviceNotification(add_device_notification_response.clone());
-        let test = response.try_into().unwrap();
+        assert_eq!(CommandID::AddDeviceNotification, response.command_id());
 
+        let test = response.try_into().unwrap();
         assert_eq!(add_device_notification_response, test);
     }
 
@@ -907,8 +918,9 @@ mod tests {
 
         let response =
             Response::DeleteDeviceNotification(delete_device_notification_response.clone());
-        let test = response.try_into().unwrap();
+        assert_eq!(CommandID::DeleteDeviceNotification, response.command_id());
 
+        let test = response.try_into().unwrap();
         assert_eq!(delete_device_notification_response, test);
     }
 
@@ -951,14 +963,20 @@ mod tests {
             AdsNotificationStream::read_from(&mut notification_stream.as_slice()).unwrap();
 
         let response = Response::DeviceNotification(device_notification_response.clone());
-        let test = response.try_into().unwrap();
+        assert_eq!(CommandID::DeviceNotification, response.command_id());
 
+        let test = response.try_into().unwrap();
         assert_eq!(device_notification_response, test);
     }
 
     #[test]
     fn response_from_read_write() {
         let read_write_response = ReadWriteResponse::new(AdsError::ErrNoError, vec![66]);
+
+        assert_eq!(
+            CommandID::ReadWrite,
+            Response::ReadWrite(read_write_response.clone()).command_id()
+        );
 
         assert_eq!(
             Response::ReadWrite(read_write_response.clone()),
@@ -971,8 +989,9 @@ mod tests {
         let read_write_response = ReadWriteResponse::new(AdsError::ErrNoError, vec![66]);
 
         let response = Response::ReadWrite(read_write_response.clone());
-        let test = response.try_into().unwrap();
+        assert_eq!(CommandID::ReadWrite, response.command_id());
 
+        let test = response.try_into().unwrap();
         assert_eq!(read_write_response, test);
     }
 
