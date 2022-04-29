@@ -63,12 +63,11 @@ fn main() {
     );
 
     //We may want to reuse the header and supply a new request
-    let mut request_buffer: Vec<u8> = Vec::new();
-    Request::ReadState(ReadStateRequest::new())
-        .write_to(&mut request_buffer)
-        .expect("Failed to write buffer!");
-    tcp_ams_header.ams_header.update_data(request_buffer);
-
+    let request = Request::ReadState(ReadStateRequest::new());
+    tcp_ams_header
+        .ams_header
+        .update_data(request, StateFlags::req_default())
+        .expect("updating data failed");
     let mut new_buffer: Vec<u8> = Vec::new();
     tcp_ams_header
         .write_to(&mut new_buffer)

@@ -7,6 +7,7 @@ use crate::proto::response::*;
 use crate::proto::state_flags::StateFlags;
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use std::io::{self, Read, Write};
+use std::mem::swap;
 
 ///Length of the fix part of the AMS Header in bytes
 const FIX_AMS_HEADER_LEN: u32 = 32;
@@ -14,12 +15,12 @@ const FIX_AMS_HEADER_LEN: u32 = 32;
 #[derive(Debug)]
 pub struct AmsTcpHeader {
     reserved: [u8; 2],
-    length: u32,
+    _length: u32,
     pub ams_header: AmsHeader,
 }
 
 impl WriteTo for AmsTcpHeader {
-    fn write_to<W: Write>(&self, mut wtr: W) -> io::Result<()> {        
+    fn write_to<W: Write>(&self, mut wtr: W) -> io::Result<()> {
         wtr.write_all(&self.reserved)?;
         wtr.write_u32::<LittleEndian>(self.ams_header.header_len())?;
         self.ams_header.write_to(&mut wtr)?;
@@ -32,7 +33,7 @@ impl ReadFrom for AmsTcpHeader {
         let reserved = read.read_u16::<LittleEndian>()?.to_le_bytes();
         Ok(AmsTcpHeader {
             reserved,
-            length: read.read_u32::<LittleEndian>()?,
+            _length: read.read_u32::<LittleEndian>()?,
             ams_header: AmsHeader::read_from(read)?,
         })
     }
@@ -42,7 +43,7 @@ impl From<AmsHeader> for AmsTcpHeader {
     fn from(ams_header: AmsHeader) -> Self {
         AmsTcpHeader {
             reserved: [0, 0],
-            length: ams_header.header_len(),
+            _length: ams_header.header_len(),
             ams_header,
         }
     }
@@ -215,11 +216,6 @@ impl AmsHeader {
         self.command_id
     }
 
-    ///Returns the response data length in bytes
-    pub fn response_data_len(&self) -> u32 {
-        self.length
-    }
-
     ///Returns the invoke id from the ams header. This is the invoke id set when requested the data
     pub fn invoke_id(&self) -> u32 {
         self.invoke_id
@@ -256,9 +252,22 @@ impl AmsHeader {
     }
 
     ///update ams header data
-    pub fn update_data(&mut self, buf: Vec<u8>) {
-        self.data = buf;     
-        self.length = self.data.len() as u32;   
+    pub fn update_data(
+        &mut self,
+        command: impl Command + WriteTo,
+        state_flag: StateFlags,
+    ) -> io::Result<()> {
+        self.command_id = command.command_id();
+        self.data.clear();
+        command.write_to(&mut self.data)?;
+        self.length = self.data.len() as u32;
+        self.state_flags = state_flag;
+        Ok(())
+    }
+
+    ///Swap targed and source AmsAddress
+    pub fn swap_address(&mut self) {
+        swap(&mut self.ams_address_source, &mut self.ams_address_targed);
     }
 }
 
@@ -361,6 +370,40 @@ mod tests {
     }
 
     #[test]
+    fn ams_header_swap_address() {
+        let port = 30000;
+        let mut ams_header = AmsHeader::new(
+            AmsAddress::new(AmsNetId::from_str("192.168.1.1.1.1").unwrap(), port),
+            AmsAddress::new(AmsNetId::new(192, 168, 1, 1, 1, 2), port),
+            StateFlags::req_default(),
+            111,
+            Request::Read(ReadRequest::new(259, 259, 4)),
+        );
+
+        //before swap
+        assert_eq!(
+            ams_header.ams_address_targed,
+            AmsAddress::new(AmsNetId::from_str("192.168.1.1.1.1").unwrap(), port)
+        );
+        assert_eq!(
+            ams_header.ams_address_source,
+            AmsAddress::new(AmsNetId::new(192, 168, 1, 1, 1, 2), port)
+        );
+
+        ams_header.swap_address();
+
+        //After swap
+        assert_eq!(
+            ams_header.ams_address_targed,
+            AmsAddress::new(AmsNetId::new(192, 168, 1, 1, 1, 2), port)
+        );
+        assert_eq!(
+            ams_header.ams_address_source,
+            AmsAddress::new(AmsNetId::from_str("192.168.1.1.1.1").unwrap(), port)
+        );
+    }
+
+    #[test]
     fn ams_tcp_header_write_to_test() {
         let mut buffer: Vec<u8> = Vec::new();
 
@@ -431,7 +474,7 @@ mod tests {
 
         let ams_tcp_header = AmsTcpHeader::read_from(&mut data.as_slice()).unwrap();
         assert_eq!(ams_tcp_header.reserved, [0, 0]);
-        assert_eq!(ams_tcp_header.length, 44);
+        assert_eq!(ams_tcp_header._length, 44);
         assert_eq!(
             ams_tcp_header
                 .ams_header
@@ -503,12 +546,12 @@ mod tests {
         ];
 
         let ams_tcp_header = AmsTcpHeader::read_from(&mut data.as_slice()).unwrap();
-        let len = ams_tcp_header.ams_header.response_data_len();
+        let len = ams_tcp_header.ams_header.data_len();
         assert_eq!(12, len);
     }
 
     #[test]
-    fn ams_tcp_header_update_response_data() {
+    fn ams_tcp_header_update_data() {
         let data: Vec<u8> = vec![
             //Reserved has to be 0
             0, 0, //Length in bytes of AmsHeader
@@ -525,9 +568,18 @@ mod tests {
         ];
 
         let mut ams_tcp_header = AmsTcpHeader::read_from(&mut data.as_slice()).unwrap();
-        let new_data: Vec<u8> = vec![3, 1, 0, 0, 3, 1, 0, 0, 16, 0, 0, 0];
-        ams_tcp_header.ams_header.update_data(new_data.clone());
+        let request = Request::ReadDeviceInfo(ReadDeviceInfoRequest::new());
+        let mut new_data: Vec<u8> = Vec::new();
+        request.write_to(&mut new_data).unwrap();
+        ams_tcp_header
+            .ams_header
+            .update_data(request, StateFlags::req_default())
+            .unwrap();
         assert_eq!(new_data, ams_tcp_header.ams_header.raw_response_data());
+        assert_eq!(
+            ams_tcp_header.ams_header.command_id(),
+            CommandID::ReadDeviceInfo
+        );
     }
 
     #[test]
