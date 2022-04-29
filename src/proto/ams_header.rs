@@ -19,9 +19,9 @@ pub struct AmsTcpHeader {
 }
 
 impl WriteTo for AmsTcpHeader {
-    fn write_to<W: Write>(&self, mut wtr: W) -> io::Result<()> {
+    fn write_to<W: Write>(&self, mut wtr: W) -> io::Result<()> {        
         wtr.write_all(&self.reserved)?;
-        wtr.write_u32::<LittleEndian>(self.length)?;
+        wtr.write_u32::<LittleEndian>(self.ams_header.header_len())?;
         self.ams_header.write_to(&mut wtr)?;
         Ok(())
     }
@@ -220,11 +220,6 @@ impl AmsHeader {
         self.length
     }
 
-    ///Updates the ams_header data
-    pub fn update_response_data(&mut self, buf: Vec<u8>) {
-        self.update_data(buf);
-    }
-
     ///Returns the invoke id from the ams header. This is the invoke id set when requested the data
     pub fn invoke_id(&self) -> u32 {
         self.invoke_id
@@ -262,7 +257,8 @@ impl AmsHeader {
 
     ///update ams header data
     pub fn update_data(&mut self, buf: Vec<u8>) {
-        self.data = buf;
+        self.data = buf;     
+        self.length = self.data.len() as u32;   
     }
 }
 
@@ -530,9 +526,7 @@ mod tests {
 
         let mut ams_tcp_header = AmsTcpHeader::read_from(&mut data.as_slice()).unwrap();
         let new_data: Vec<u8> = vec![3, 1, 0, 0, 3, 1, 0, 0, 16, 0, 0, 0];
-        ams_tcp_header
-            .ams_header
-            .update_response_data(new_data.clone());
+        ams_tcp_header.ams_header.update_data(new_data.clone());
         assert_eq!(new_data, ams_tcp_header.ams_header.raw_response_data());
     }
 
