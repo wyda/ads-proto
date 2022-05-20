@@ -108,7 +108,7 @@ impl AmsHeader {
         invoke_id: u32,
         command: impl Command + WriteTo,
     ) -> Self {
-        let mut data: Vec<u8> = Vec::new();
+        let mut data: Vec<u8> = Vec::with_capacity(16);
         command
             .write_to(&mut data)
             .expect("failed to write request to buffer!");
