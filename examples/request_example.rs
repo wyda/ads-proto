@@ -1,14 +1,15 @@
 extern crate ads_proto;
-
 use ads_proto::ads_services::system_services::GET_SYMHANDLE_BY_NAME;
 use ads_proto::proto::ams_address::*;
 use ads_proto::proto::ams_header::{AmsHeader, AmsTcpHeader};
 use ads_proto::proto::proto_traits::*;
 use ads_proto::proto::request::*;
 use ads_proto::proto::state_flags::StateFlags;
+use anyhow;
+use std::result::Result;
 use std::str::FromStr;
 
-fn main() {
+fn main() -> Result<(), anyhow::Error> {
     //Creating a request (client)
 
     //We need the targed ams address
@@ -53,9 +54,7 @@ fn main() {
 
     //Finally create the byte buffer.
     let mut buffer: Vec<u8> = Vec::new();
-    tcp_ams_header
-        .write_to(&mut buffer)
-        .expect("Failed to write byte buffer!");
+    tcp_ams_header.write_to(&mut buffer)?;
 
     print!(
         "Byte buffer (AmsTcpHeader) with read write request\n{:?}\n",
@@ -66,12 +65,11 @@ fn main() {
     let request = Request::ReadState(ReadStateRequest::new());
     tcp_ams_header
         .ams_header
-        .update_data(request, StateFlags::req_default())
-        .expect("updating data failed");
+        .update_data(request, StateFlags::req_default())?;
+
     let mut new_buffer: Vec<u8> = Vec::new();
-    tcp_ams_header
-        .write_to(&mut new_buffer)
-        .expect("Failed to write byte buffer!");
+    tcp_ams_header.write_to(&mut new_buffer)?;
+
     print!(
         "Byte buffer (AmsTcpHeader) with read state request\n{:?}\n",
         new_buffer
@@ -80,32 +78,28 @@ fn main() {
     //=========================================================
 
     //Reading a request (server/router)
-    let mut tcp_ams_header = AmsTcpHeader::read_from(&mut buffer.as_slice())
-        .expect("Failed to read AmsTcpHeader from byte buffer!");
+    let mut tcp_ams_header = AmsTcpHeader::read_from(&mut buffer.as_slice())?;
 
     //Get the requst data
-    let request = tcp_ams_header
-        .ams_header
-        .request()
-        .expect("Failed to get request data!");
+    let request = tcp_ams_header.ams_header.request()?;
 
     //Handle the request
     match request {
         Request::Invalid(_) => panic!(),
         Request::Read(r) => {
-            let r: ReadRequest = r.try_into().unwrap();
+            let r: ReadRequest = r.try_into()?;
             print!("var handle is {:?}", r.index_offset);
         }
         Request::ReadDeviceInfo(r) => {
-            let _r: ReadDeviceInfoRequest = r.try_into().unwrap();
+            let _r: ReadDeviceInfoRequest = r.try_into()?;
             print!("recieved a read device info request");
         }
         Request::ReadState(r) => {
-            let _r: ReadStateRequest = r.try_into().unwrap();
+            let _r: ReadStateRequest = r.try_into()?;
             print!("recieved a read state request");
         }
         Request::ReadWrite(r) => {
-            let r: ReadWriteRequest = r.try_into().unwrap();
+            let r: ReadWriteRequest = r.try_into()?;
             print!("received a read write request...\n");
             print!("Command id  :{:?} \n", r.command_id);
             print!("Data        :{:?} \n", r.data);
@@ -115,28 +109,30 @@ fn main() {
             print!("Write length:{:?} \n", r.write_length);
         }
         Request::Write(r) => {
-            let r: WriteRequest = r.try_into().unwrap();
+            let r: WriteRequest = r.try_into()?;
             print!("recieved a write request");
             print!("data to write -> {:?}", r.data);
         }
         Request::WriteControl(r) => {
-            let r: WriteControlRequest = r.try_into().unwrap();
+            let r: WriteControlRequest = r.try_into()?;
             print!("recieved a write control request:");
             print!("requested ads state is: {:?}", r.ads_state);
         }
         Request::AddDeviceNotification(r) => {
-            let r: AddDeviceNotificationRequest = r.try_into().unwrap();
+            let r: AddDeviceNotificationRequest = r.try_into()?;
             print!("recieved an add device notification request");
             print!("transition mode is -> {:?}", r.transmission_mode);
         }
         Request::DeleteDeviceNotification(r) => {
-            let r: DeleteDeviceNotificationRequest = r.try_into().unwrap();
+            let r: DeleteDeviceNotificationRequest = r.try_into()?;
             print!("recieved a delete device notification request");
             print!("delete notification for handle -> {:?}", r.handle);
         }
         Request::DeviceNotification(r) => {
-            let _r: DeviceNotificationRequest = r.try_into().unwrap();
+            let _r: DeviceNotificationRequest = r.try_into()?;
             print!("recieved a device notification (?)");
         }
     }
+
+    Ok(())
 }

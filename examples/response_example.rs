@@ -1,14 +1,15 @@
 extern crate ads_proto;
-
 use ads_proto::error::AdsError;
 use ads_proto::proto::ams_address::*;
 use ads_proto::proto::ams_header::{AmsHeader, AmsTcpHeader};
 use ads_proto::proto::proto_traits::*;
 use ads_proto::proto::response::*;
 use ads_proto::proto::state_flags::StateFlags;
+use anyhow;
+use std::result::Result;
 use std::str::FromStr;
 
-fn main() {
+fn main() -> Result<(), anyhow::Error> {
     //creating a response (server/router)
 
     //We need a targed ams address (from request header)
@@ -50,23 +51,16 @@ fn main() {
 
     //Create byte buffer to send over TCP/IP
     let mut buffer: Vec<u8> = Vec::new();
-    ams_tcp_header
-        .write_to(&mut buffer)
-        .expect("Failed to write byte buffer!");
+    ams_tcp_header.write_to(&mut buffer)?;
 
     //===========================================================================
     //Read received response data (client)
-    let mut recv_ams_tcp_header = AmsTcpHeader::read_from(&mut buffer.as_slice())
-        .expect("Failed to create AmsTcpHeader from byte buffer!");
+    let mut recv_ams_tcp_header = AmsTcpHeader::read_from(&mut buffer.as_slice())?;
 
     //get the response
-    let recv_response = recv_ams_tcp_header
-        .ams_header
-        .response()
-        .expect("failed to get response object");
+    let recv_response = recv_ams_tcp_header.ams_header.response()?;
 
     //handle response
-
     match recv_response {
         Response::Invalid(r) => panic!("{:?}\n", r),
         Response::Read(r) => println!("Got a read response {:?}\n", r),
@@ -89,4 +83,6 @@ fn main() {
         }
         Response::DeviceNotification(r) => println!("Got a device notification response {:?}\n", r),
     }
+
+    Ok(())
 }

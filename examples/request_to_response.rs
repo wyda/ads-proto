@@ -1,5 +1,4 @@
 extern crate ads_proto;
-
 use ads_proto::ads_services::system_services::GET_SYMHANDLE_BY_NAME;
 use ads_proto::error::AdsError;
 use ads_proto::proto::ams_address::*;
@@ -8,9 +7,11 @@ use ads_proto::proto::proto_traits::*;
 use ads_proto::proto::request::*;
 use ads_proto::proto::response::*;
 use ads_proto::proto::state_flags::StateFlags;
+use anyhow;
+use std::result::Result;
 use std::str::FromStr;
 
-fn main() {
+fn main() -> Result<(), anyhow::Error> {
     //Creating a request (client)
 
     //AmsAddress source and targed
@@ -47,20 +48,14 @@ fn main() {
     ));
 
     let mut buffer: Vec<u8> = Vec::new();
-    ams_tcp_header
-        .write_to(&mut buffer)
-        .expect("Failed to write to buffer!");
+    ams_tcp_header.write_to(&mut buffer)?;
     //=============================================================================
 
     //Receive the request and responde (server/router)
-    let mut recv_ams_tcp_header = AmsTcpHeader::read_from(&mut buffer.as_slice())
-        .expect("Failed to create AmsTcpHeader from byte buffer!");
+    let mut recv_ams_tcp_header = AmsTcpHeader::read_from(&mut buffer.as_slice())?;
 
     //Handle response
-    let request = match recv_ams_tcp_header.ams_header.request() {
-        Ok(r) => r,
-        Err(e) => panic!("Failed to get request from ams header!\n{:?}", e),
-    };
+    let request = recv_ams_tcp_header.ams_header.request()?;
 
     let mut send_back_buffer: Vec<u8> = Vec::new();
     match request {
@@ -71,8 +66,7 @@ fn main() {
         Request::ReadWrite(r) => {
             println!("Read writerequest received:\n{:?}", r);
             //Return the handle for the requested var name. Reuse AmsTcpHeader
-            let var_name =
-                String::from_utf8(r.data).expect("Failed to parse var name from byte buffer");
+            let var_name = String::from_utf8(r.data)?;
             match var_name.as_str() {
                 "Main.SomeVar" => {
                     let var_handle: u32 = 123;
@@ -84,14 +78,11 @@ fn main() {
                     //Update ams header with our response
                     recv_ams_tcp_header
                         .ams_header
-                        .update_data(response, StateFlags::resp_default()) //Update AmsHeader with response and state flag
-                        .expect("Failed updating ams header data");
-                    //Swap targed and source address for sendig back
+                        .update_data(response, StateFlags::resp_default())?; //Update AmsHeader with response and state flag
+                                                                             //Swap targed and source address for sendig back
                     recv_ams_tcp_header.ams_header.swap_address();
                     //Write to u8 buffer
-                    recv_ams_tcp_header
-                        .write_to(&mut send_back_buffer)
-                        .expect("Failed to write buffer!");
+                    recv_ams_tcp_header.write_to(&mut send_back_buffer)?;
                 }
                 _ => println!("Unknown var name"),
             }
@@ -109,20 +100,16 @@ fn main() {
     //============================================================================================================
 
     //Read response from server (client)
-    let mut resp_ams_tcp_header = AmsTcpHeader::read_from(&mut send_back_buffer.as_slice())
-        .expect("Faield to read response buffer!");
+    let mut resp_ams_tcp_header = AmsTcpHeader::read_from(&mut send_back_buffer.as_slice())?;
 
     //Get the requested handle
-    let response: ReadWriteResponse = resp_ams_tcp_header
-        .ams_header
-        .response()
-        .expect("Failed to get response object")
-        .try_into()
-        .expect("Failed to parse into read write response");
+    let response: ReadWriteResponse = resp_ams_tcp_header.ams_header.response()?.try_into()?;
 
-    let handle = u32::from_le_bytes(response.data.try_into().expect("wrong slice length!"));
+    let handle = u32::from_le_bytes(response.data.try_into().expect("Failed to convert to u32"));
     println!(
         "Received handle for var Main.SomeVar... Handle is: {:?}",
         handle
     );
+
+    Ok(())
 }
