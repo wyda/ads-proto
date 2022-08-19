@@ -2,6 +2,7 @@ use crate::error::AmsAddressError;
 use crate::proto::proto_traits::{ReadFrom, WriteTo};
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use std::io::{self, Read, Write};
+use std::net::SocketAddr;
 use std::str::FromStr;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -15,8 +16,11 @@ impl AmsAddress {
         AmsAddress { ams_net_id, port }
     }
 
-    pub fn update_from_socket_addr(&mut self, socket_addr: &str) -> Result<(), AmsAddressError> {
-        let ams_address = AmsAddress::from_str(socket_addr)?;
+    pub fn update_from_socket_addr(
+        &mut self,
+        socket_addr: SocketAddr,
+    ) -> Result<(), AmsAddressError> {
+        let ams_address = AmsAddress::from_str(socket_addr.to_string().as_str())?;
         self.ams_net_id = ams_address.ams_net_id;
         self.port = ams_address.port;
         Ok(())
