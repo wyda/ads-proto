@@ -78,8 +78,8 @@ fn main() -> Result<(), anyhow::Error> {
                     //Update ams header with our response
                     recv_ams_tcp_header
                         .ams_header
-                        .update_data(response, StateFlags::resp_default())?; //Update AmsHeader with response and state flag
-                                                                             //Swap targed and source address for sendig back
+                        .update_command(response, StateFlags::resp_default())?; //Update AmsHeader with response and state flag
+                                                                                //Swap targed and source address for sendig back
                     recv_ams_tcp_header.ams_header.swap_address();
                     //Write to u8 buffer
                     recv_ams_tcp_header.write_to(&mut send_back_buffer)?;

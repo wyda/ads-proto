@@ -65,7 +65,7 @@ fn main() -> Result<(), anyhow::Error> {
     let request = Request::ReadState(ReadStateRequest::new());
     tcp_ams_header
         .ams_header
-        .update_data(request, StateFlags::req_default())?;
+        .update_command(request, StateFlags::req_default())?;
 
     let mut new_buffer: Vec<u8> = Vec::new();
     tcp_ams_header.write_to(&mut new_buffer)?;

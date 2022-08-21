@@ -251,8 +251,10 @@ impl AmsHeader {
         self.length
     }
 
-    ///update ams header data
-    pub fn update_data(
+    /// update command id, payload data and state flags.
+    /// for example when changing the AmsHeader from request to response instead of cerating a new one
+    /// see also swap_address()
+    pub fn update_command(
         &mut self,
         command: impl Command + WriteTo,
         state_flag: StateFlags,
@@ -265,7 +267,15 @@ impl AmsHeader {
         Ok(())
     }
 
-    ///Swap targed and source AmsAddress
+    /// update ams header data
+    /// updates the payload data and the data length info in the ams header
+    pub fn update_raw_data(&mut self, buffer: Vec<u8>) -> io::Result<()> {
+        self.data = buffer;
+        self.length = self.data.len() as u32;
+        Ok(())
+    }
+
+    /// Swap targed and source AmsAddress
     pub fn swap_address(&mut self) {
         swap(&mut self.ams_address_source, &mut self.ams_address_targed);
     }
@@ -295,9 +305,9 @@ mod tests {
         #[rustfmt::skip]
         let compare: Vec<u8> = vec![
             //target AmsAddress -> NetId/port (192.168.1.1.1.1, 30000)
-            192, 168, 1, 1, 1, 1, 48, 117,      
+            192, 168, 1, 1, 1, 1, 48, 117,
             //Source AmsAddress -> NetId/port (192.168.1.1.1.2, 30000)
-            192, 168, 1, 1, 1, 2, 48, 117,      
+            192, 168, 1, 1, 1, 2, 48, 117,
             //CommandID -> Read 
             2, 0,                               
             //state flag -> Request, Ads command, TCP (4)
@@ -319,7 +329,7 @@ mod tests {
         #[rustfmt::skip]
         let data: Vec<u8> = vec![
             //target AmsAddress -> NetId/port (192.168.1.1.1.1, 30000)
-            192, 168, 1, 1, 1, 1, 48, 117,      
+            192, 168, 1, 1, 1, 1, 48, 117,
             //Source AmsAddress -> NetId/port (192.168.1.1.1.2, 30000)
             192, 168, 1, 1, 1, 2, 48, 117,      
             //CommandID -> Read 
@@ -551,7 +561,7 @@ mod tests {
     }
 
     #[test]
-    fn ams_tcp_header_update_data() {
+    fn ams_tcp_header_update_command() {
         let data: Vec<u8> = vec![
             //Reserved has to be 0
             0, 0, //Length in bytes of AmsHeader
@@ -573,13 +583,44 @@ mod tests {
         request.write_to(&mut new_data).unwrap();
         ams_tcp_header
             .ams_header
-            .update_data(request, StateFlags::req_default())
+            .update_command(request, StateFlags::req_default())
             .unwrap();
         assert_eq!(new_data, ams_tcp_header.ams_header.raw_response_data());
         assert_eq!(
             ams_tcp_header.ams_header.command_id(),
             CommandID::ReadDeviceInfo
         );
+    }
+
+    #[test]
+    fn ams_tcp_header_update_data() {
+        let data: Vec<u8> = vec![
+            //Reserved has to be 0
+            0, 0, //Length in bytes of AmsHeader
+            44, 0, 0, 0, //target AmsAddress -> NetId/port (192.168.1.1.1.1, 30000)
+            192, 168, 1, 1, 1, 1, 48, 117,
+            //Source AmsAddress -> NetId/port (192.168.1.1.1.2, 30000)
+            192, 168, 1, 1, 1, 2, 48, 117, //CommandID -> Read
+            2, 0, //state flag -> Request, Ads command, TCP (4)
+            4, 0, //Lennth of data for read request (12 byte)
+            12, 0, 0, 0, //Error code -> No error
+            0, 0, 0, 0, //Invoke ID -> 111
+            111, 0, 0, 0, //Data from read request -> see request.rs
+            3, 1, 0, 0, 3, 1, 0, 0, 4, 0, 0, 0,
+        ];
+
+        let mut ams_tcp_header = AmsTcpHeader::read_from(&mut data.as_slice()).unwrap();
+        let new_data: Vec<u8> = vec![111, 0, 0, 0, 3, 1, 0, 0, 1, 3, 0, 0, 8, 0]; //2 byte shorter
+        ams_tcp_header
+            .ams_header
+            .update_raw_data(new_data.clone())
+            .unwrap();
+        assert_eq!(new_data, ams_tcp_header.ams_header.raw_response_data());
+        assert_eq!(
+            new_data.len(),
+            ams_tcp_header.ams_header.raw_response_data().len()
+        );
+        assert_eq!(new_data.len(), 14);
     }
 
     #[test]
