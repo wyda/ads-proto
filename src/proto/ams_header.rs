@@ -12,10 +12,10 @@ use std::mem::swap;
 ///Length of the fix part of the AMS Header in bytes
 const FIX_AMS_HEADER_LEN: u32 = 32;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct AmsTcpHeader {
     reserved: [u8; 2],
-    _length: u32,
+    pub length: u32,
     pub ams_header: AmsHeader,
 }
 
@@ -33,7 +33,7 @@ impl ReadFrom for AmsTcpHeader {
         let reserved = read.read_u16::<LittleEndian>()?.to_le_bytes();
         Ok(AmsTcpHeader {
             reserved,
-            _length: read.read_u32::<LittleEndian>()?,
+            length: read.read_u32::<LittleEndian>()?,
             ams_header: AmsHeader::read_from(read)?,
         })
     }
@@ -43,13 +43,13 @@ impl From<AmsHeader> for AmsTcpHeader {
     fn from(ams_header: AmsHeader) -> Self {
         AmsTcpHeader {
             reserved: [0, 0],
-            _length: ams_header.header_len(),
+            length: ams_header.header_len(),
             ams_header,
         }
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct AmsHeader {
     ams_address_targed: AmsAddress,
     ams_address_source: AmsAddress,
@@ -484,7 +484,7 @@ mod tests {
 
         let ams_tcp_header = AmsTcpHeader::read_from(&mut data.as_slice()).unwrap();
         assert_eq!(ams_tcp_header.reserved, [0, 0]);
-        assert_eq!(ams_tcp_header._length, 44);
+        assert_eq!(ams_tcp_header.length, 44);
         assert_eq!(
             ams_tcp_header
                 .ams_header

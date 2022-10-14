@@ -9,7 +9,7 @@ pub enum NetProto {
     Udp,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct StateFlags {
     value: u16,
 }

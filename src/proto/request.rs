@@ -16,7 +16,7 @@ use std::convert::TryInto;
 ///
 /// let request = Request::ReadDeviceInfo(ReadDeviceInfoRequest::new());
 /// ```
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Request {
     Invalid(InvalidRequest),
     ReadDeviceInfo(ReadDeviceInfoRequest),
