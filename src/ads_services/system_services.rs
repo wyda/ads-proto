@@ -20,6 +20,14 @@ pub const READ_WRITE_SYMVAL_BY_HANDLE: AdsService = AdsService {
     index_offset_end: 0xFFFFFFFF,
 };
 
+///Releases a symhandle.
+///Send Symhandle with the write data
+pub const RELEASE_SYMHANDLE: AdsService = AdsService {
+    index_group: 0x0000F006,
+    index_offset_start: 0x00000000,
+    index_offset_end: 0xFFFFFFFF,
+};
+
 /// Index offset = Number of internal sub-commands.
 /// Max commands = 500
 pub const ADSIGRP_SUMUP_WRITE: AdsService = AdsService {
