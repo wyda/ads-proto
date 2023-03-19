@@ -127,7 +127,7 @@ impl AmsHeader {
 
     ///Returns the response from AMS header data
     pub fn response(&mut self) -> io::Result<Response> {
-        if self.state_flags.is_response() {
+        if self.state_flags.is_response() || self.command_id == CommandID::DeviceNotification {
             match self.command_id {
                 CommandID::Invalid => Err(io::Error::new(
                     io::ErrorKind::Other,
