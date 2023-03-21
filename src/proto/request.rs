@@ -16,7 +16,7 @@ use std::convert::TryInto;
 ///
 /// let request = Request::ReadDeviceInfo(ReadDeviceInfoRequest::new());
 /// ```
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Request {
     Invalid(InvalidRequest),
     ReadDeviceInfo(ReadDeviceInfoRequest),
@@ -235,7 +235,7 @@ impl TryInto<ReadWriteRequest> for Request {
 }
 
 /// ADS Invalid request
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct InvalidRequest {
     command_id: CommandID,
 }
@@ -255,7 +255,7 @@ impl Default for InvalidRequest {
 }
 
 /// ADS read device info request
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ReadDeviceInfoRequest {
     command_id: CommandID,
 }
@@ -275,7 +275,7 @@ impl Default for ReadDeviceInfoRequest {
 }
 
 /// ADS read device info request
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ReadStateRequest {
     command_id: CommandID,
 }
@@ -295,7 +295,7 @@ impl Default for ReadStateRequest {
 }
 
 /// ADS read device info request
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DeviceNotificationRequest {
     command_id: CommandID,
 }
@@ -315,7 +315,7 @@ impl Default for DeviceNotificationRequest {
 }
 
 /// ADS Read
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ReadRequest {
     pub index_group: u32,
     pub index_offset: u32,
@@ -355,7 +355,7 @@ impl ReadFrom for ReadRequest {
 }
 
 ///ADS Write
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct WriteRequest {
     pub index_group: u32,
     pub index_offset: u32,
@@ -405,7 +405,7 @@ impl ReadFrom for WriteRequest {
 }
 
 /// ADS Write Control
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct WriteControlRequest {
     pub ads_state: AdsState,
     pub device_state: u16,
@@ -454,7 +454,7 @@ impl ReadFrom for WriteControlRequest {
 }
 
 /// ADS Add Device Notification
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Eq)]
 pub struct AddDeviceNotificationRequest {
     pub index_group: u32,
     pub index_offset: u32,
@@ -517,7 +517,7 @@ impl ReadFrom for AddDeviceNotificationRequest {
 }
 
 /// ADS read device info request
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DeleteDeviceNotificationRequest {
     pub handle: u32,
     pub command_id: CommandID,
@@ -549,7 +549,7 @@ impl DeleteDeviceNotificationRequest {
 }
 
 /// ADS Read Write
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ReadWriteRequest {
     pub index_group: u32,
     pub index_offset: u32,

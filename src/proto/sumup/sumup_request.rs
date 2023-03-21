@@ -7,7 +7,7 @@ use crate::proto::request::{ReadRequest, ReadWriteRequest, WriteRequest};
 
 ///Ads Sumup Read Write Request data
 ///Bundle multiple requestst toghether. Add this data to the read write request or parse from.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SumupReadWriteRequest {
     read_write_requests: Vec<ReadWriteRequest>,
     command_id: CommandID,
@@ -53,6 +53,18 @@ impl SumupReadWriteRequest {
             read_write_requests,
             command_id: CommandID::ReadWrite,
         }
+    }
+
+    pub fn expected_response_len(&self) -> u32 {
+        let mut result = 0;
+        for request in &self.read_write_requests {
+            result += request.read_length + 8; //8 byte -> 4 byte result + 4 byte length in response data
+        }
+        result
+    }
+
+    pub fn request_count(&self) -> u32 {
+        self.read_write_requests.len() as u32
     }
 }
 
@@ -114,7 +126,7 @@ impl ReadFrom for SumupReadWriteRequest {
 
 ///Ads Sumup Read Request data
 ///Bundle multiple requestst toghether. Add this data to a read write request or parse from.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SumupReadRequest {
     read_requests: Vec<ReadRequest>,
     command_id: CommandID,
@@ -172,13 +184,13 @@ impl ReadFrom for SumupReadRequest {
 
 ///Ads Sumup Write Request data
 ///Bundle multiple requestst toghether. Add this data to the read write request or parse from.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SumupWriteRequest {
     write_requests: Vec<WriteRequest>,
     command_id: CommandID,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 struct WriteAccessData {
     index_group: u32,
     index_offset: u32,
@@ -335,6 +347,42 @@ mod tests {
             sum_read_write_request, compare,
             "comparing sum_read_write_request failed"
         );
+    }
+
+    #[test]
+    fn sumup_read_write_request_expected_response_len_test() {
+        let mut rw_vec: Vec<ReadWriteRequest> = Vec::new();
+        let data: u32 = 111111;
+        let data: Vec<u8> = data.to_le_bytes().to_vec();
+        let rw_1 = ReadWriteRequest::new(259, 33, 4, data);
+        rw_vec.push(rw_1);
+
+        let data: u64 = 222222;
+        let data: Vec<u8> = data.to_le_bytes().to_vec();
+        let rw_2 = ReadWriteRequest::new(260, 22, 4, data);
+        rw_vec.push(rw_2);
+
+        let sum_up_request = SumupReadWriteRequest::new(rw_vec);
+
+        assert_eq!(sum_up_request.expected_response_len(), 24); // 2*(4 byte read data + 8 byte) -> 4 byte result + 4 byte length in response data)
+    }
+
+    #[test]
+    fn sumup_read_write_request_request_count_test() {
+        let mut rw_vec: Vec<ReadWriteRequest> = Vec::new();
+        let data: u32 = 111111;
+        let data: Vec<u8> = data.to_le_bytes().to_vec();
+        let rw_1 = ReadWriteRequest::new(259, 33, 4, data);
+        rw_vec.push(rw_1);
+
+        let data: u64 = 222222;
+        let data: Vec<u8> = data.to_le_bytes().to_vec();
+        let rw_2 = ReadWriteRequest::new(260, 22, 4, data);
+        rw_vec.push(rw_2);
+
+        let sum_up_request = SumupReadWriteRequest::new(rw_vec);
+
+        assert_eq!(sum_up_request.request_count(), 2);
     }
 
     #[test]

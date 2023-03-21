@@ -5,7 +5,7 @@ use std::io::{self, Read, Write};
 use std::net::SocketAddr;
 use std::str::FromStr;
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct AmsAddress {
     pub ams_net_id: AmsNetId,
     pub port: u16,
@@ -64,7 +64,7 @@ impl FromStr for AmsAddress {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AmsNetId {
     net_id: [u8; 6],
 }

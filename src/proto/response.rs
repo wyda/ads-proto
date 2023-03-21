@@ -22,7 +22,7 @@ use std::string::FromUtf8Error;
 ///     [1; 16],
 /// ));
 /// ```
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum Response {
     Invalid(InvalidResponse),
     ReadDeviceInfo(ReadDeviceInfoResponse),
@@ -241,7 +241,7 @@ impl TryInto<ReadWriteResponse> for Response {
 }
 
 /// ADS Invalid response
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct InvalidResponse {
     command_id: CommandID,
 }
@@ -261,7 +261,7 @@ impl Default for InvalidResponse {
 }
 
 /// ADS Read Device Info
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Eq)]
 pub struct ReadDeviceInfoResponse {
     pub result: AdsError,
     pub major_version: u8,
@@ -344,7 +344,7 @@ impl ReadDeviceInfoResponse {
 }
 
 ///Ads Write
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Eq)]
 pub struct WriteResponse {
     pub result: AdsError,
     pub command_id: CommandID,
@@ -377,7 +377,7 @@ impl WriteResponse {
 }
 
 /// ADS Read State
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Eq)]
 pub struct ReadStateResponse {
     pub result: AdsError,
     pub ads_state: AdsState,
@@ -417,7 +417,7 @@ impl ReadStateResponse {
 }
 
 ///Write control
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Eq)]
 pub struct WriteControlResponse {
     pub result: AdsError,
     pub command_id: CommandID,
@@ -449,7 +449,7 @@ impl WriteControlResponse {
 }
 
 /// ADS Add Device Notification
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Eq)]
 pub struct AddDeviceNotificationResponse {
     pub result: AdsError,
     pub notification_handle: u32,
@@ -485,7 +485,7 @@ impl AddDeviceNotificationResponse {
 }
 
 /// ADS Delete Device Notification
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Eq)]
 pub struct DeleteDeviceNotificationResponse {
     pub result: AdsError,
     pub command_id: CommandID,
@@ -517,7 +517,7 @@ impl DeleteDeviceNotificationResponse {
 }
 
 //ADS Device Notification Response
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Eq)]
 pub struct AdsNotificationSample {
     pub notification_handle: u32,
     pub sample_size: u32,
@@ -538,7 +538,7 @@ impl AdsNotificationSample {
     }
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Eq)]
 pub struct AdsStampHeader {
     pub time_stamp: u64,
     pub samples: u32,
@@ -609,7 +609,7 @@ impl AdsStampHeader {
     }
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Eq)]
 pub struct AdsNotificationStream {
     pub length: u32,
     pub stamps: u32,
@@ -672,7 +672,7 @@ impl AdsNotificationStream {
 }
 
 //Ads Read response
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ReadResponse {
     pub result: AdsError,
     pub length: u32,
@@ -716,7 +716,7 @@ impl ReadResponse {
 }
 
 //Ads ReadWrite response
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ReadWriteResponse {
     pub result: AdsError,
     pub length: u32,

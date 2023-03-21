@@ -1,6 +1,6 @@
 use thiserror::Error;
 
-#[derive(Error, Debug, PartialEq, Clone)]
+#[derive(Error, Debug, PartialEq, Eq, Clone)]
 pub enum TryIntoError {
     #[error("try_into failed. self is wrong response!")]
     TryIntoResponseFailed,
@@ -8,7 +8,7 @@ pub enum TryIntoError {
     TryIntoRequestFailed,
 }
 
-#[derive(Error, Debug, PartialEq, Clone)]
+#[derive(Error, Debug, PartialEq, Eq, Clone)]
 pub enum AmsAddressError {
     #[error("Failed parsing address from &str")]
     ParseError { source: std::num::ParseIntError },
@@ -18,7 +18,7 @@ pub enum AmsAddressError {
     InvalidAddressLength { length: usize },
 }
 
-#[derive(Error, Debug, PartialEq, Clone)]
+#[derive(Error, Debug, PartialEq, Eq, Clone)]
 pub enum AdsError {
     //Global error codes
     #[error("No error")]

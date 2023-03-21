@@ -5,7 +5,7 @@ use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use std::io::{self, Read, Write};
 
 //Helper struct
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 struct AccessData {
     result: u32,
     length: u32,
@@ -30,7 +30,7 @@ impl ReadFrom for AccessData {
 
 ///Ads Sumup Read response
 ///Bundle multiple responses toghether. Add this data to the read write response or parse from.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SumupReadResponse {
     pub read_responses: Vec<ReadResponse>,
 }
@@ -92,7 +92,7 @@ impl WriteTo for SumupReadResponse {
 
 ///Ads Sumup Write response
 ///Bundle multiple responses toghether. Add this data to the read write response or parse from.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SumupWriteResponse {
     pub write_responses: Vec<WriteResponse>,
 }
