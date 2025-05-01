@@ -621,7 +621,7 @@ impl ReadFrom for AdsNotificationStream {
     fn read_from<R: Read>(read: &mut R) -> io::Result<Self> {
         let length = read.read_u32::<LittleEndian>()?;
         let stamps = read.read_u32::<LittleEndian>()?;
-        let stamp_data_size = ((length - 4) / stamps) as u32; //-4 -> stamps is in length incl. but already read in previous line!
+        let stamp_data_size = (length - 4) / stamps; //-4 -> stamps is in length incl. but already read in previous line!
         let mut ads_stamp_headers: Vec<AdsStampHeader> = Vec::with_capacity(stamps as usize);
         let mut buffer: Vec<u8> = vec![0; (stamp_data_size) as usize];
         for _ in 0..stamps {
@@ -652,10 +652,15 @@ impl WriteTo for AdsNotificationStream {
 }
 
 impl AdsNotificationStream {
-    pub fn new(length: u32, stamps: u32, ads_stamp_headers: Vec<AdsStampHeader>) -> Self {
+    pub fn new(ads_stamp_headers: Vec<AdsStampHeader>) -> Self {
+        let mut length: u32 = 0;
+        for header in &ads_stamp_headers {
+            length += header.stamp_len() as u32;
+        }
+        length += size_of::<u32>() as u32; //length + stamps + ads_stamp_headers
         AdsNotificationStream {
             length,
-            stamps,
+            stamps: ads_stamp_headers.len() as u32,
             ads_stamp_headers,
             command_id: CommandID::DeviceNotification,
         }
@@ -1355,8 +1360,7 @@ mod tests {
         assert_eq!(&len, &expected_len, "Wrong number of bytes");
 
         //4+4+34+28=70byte
-        let ads_notification_stream =
-            AdsNotificationStream::new(len as u32, stamp_headers.len() as u32, stamp_headers);
+        let ads_notification_stream = AdsNotificationStream::new(stamp_headers);
 
         let expected_len: usize = 70;
         assert_eq!(
