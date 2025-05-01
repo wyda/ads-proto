@@ -587,14 +587,10 @@ impl WriteTo for AdsStampHeader {
 }
 
 impl AdsStampHeader {
-    pub fn new(
-        time_stamp: u64,
-        samples: u32,
-        notification_samples: Vec<AdsNotificationSample>,
-    ) -> Self {
+    pub fn new(time_stamp: u64, notification_samples: Vec<AdsNotificationSample>) -> Self {
         AdsStampHeader {
             time_stamp,
-            samples,
+            samples: notification_samples.len() as u32,
             notification_samples,
         }
     }
@@ -1339,12 +1335,12 @@ mod tests {
         let mut notification_samples = Vec::new();
         notification_samples.push(notification_sample1);
         notification_samples.push(notification_sample2);
-        let stamp_header1 = AdsStampHeader::new(1234567890, 2, notification_samples);
+        let stamp_header1 = AdsStampHeader::new(1234567890, notification_samples);
 
         //8+4+16=28byte
         let mut notification_samples = Vec::new();
         notification_samples.push(notification_sample3);
-        let stamp_header2 = AdsStampHeader::new(1234567890, 1, notification_samples);
+        let stamp_header2 = AdsStampHeader::new(1234567890, notification_samples);
 
         let mut stamp_headers = Vec::new();
         stamp_headers.push(stamp_header1);
