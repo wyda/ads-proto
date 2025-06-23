@@ -28,6 +28,22 @@ pub const RELEASE_SYMHANDLE: AdsService = AdsService {
     index_offset_end: 0xFFFFFFFF,
 };
 
+///UploadSymbols
+///Read all symbols from the PLC.
+pub const ADSIGRP_SYM_UPLOAD: AdsService = AdsService {
+    index_group: 0x0000F00B,
+    index_offset_start: 0x00000000,
+    index_offset_end: 0xFFFFFFFF,
+};
+
+///Symbol Upload Info
+///Read the symbol upload info from the PLC. Length of the upload data.
+pub const ADSIGRP_SYM_UPLOADINFO: AdsService = AdsService {
+    index_group: 0x0000F00C,
+    index_offset_start: 0x00000000,
+    index_offset_end: 0xFFFFFFFF,
+};
+
 /// Index offset = Number of internal sub-commands.
 /// Max commands = 500
 pub const ADSIGRP_SUMUP_WRITE: AdsService = AdsService {
